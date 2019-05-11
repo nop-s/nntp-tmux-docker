@@ -24,8 +24,5 @@ If you're being serious…
  You'll want to give the database container a persistent store, otherwise you're gonna lose everything.
  `make clean` will obliterate everything with docker prune, so heads up.
 
-Questions?
-
-
 Shouts:
 nzbs.org -- Thanks for the run!

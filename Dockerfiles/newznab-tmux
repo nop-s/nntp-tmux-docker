@@ -1,14 +1,9 @@
 FROM ubuntu:latest
-RUN echo "Etc/UTC" > /etc/timezone
-# ARGs for flexibility
-ARG PHP_VERSION=${PHP_VERSION:-7.2}
+## Declare our ARGS
+ARG APP_TZ
 ARG NNTMUX_USER=${NNTMUX_USER:-root}
-ARG NEWZNAB_DB_HOST=db
-ARG NEWZNAB_DB_USERNAME=newsie
-ARG NEWZNAB_DB_PASSWORD=changeme
-ARG NEWZNAB_ADMIN_USER=nimda
-ARG NEWZNAB_ADMIN_PASS=adminchangeme
-ARG NEWZNAB_ADMIN_EMAIL=newznab@example.com
+## Build our image
+RUN echo "${APP_TZ}" > /etc/timezone
 ## Meddle with the timezone info
 #RUN ln -fs /usr/share/zoneinfo/US/Pacific-New /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
 RUN apt-get update && apt-get upgrade -y
@@ -62,15 +57,15 @@ RUN ln -s /etc/nginx/sites-available/NNTmux /etc/nginx/sites-enabled/NNTmux
 ## Configure the PHP CLI
 RUN sed -i.bak 's/max_execution_time = 30/max_execution_time = 120/' /etc/php/7.2/cli/php.ini
 RUN sed -i.bak 's/memory_limit = -1/memory_limit = 1024M/' /etc/php/7.2/cli/php.ini
+## TODO Set this via the .env file
 RUN sed -i.bak 's/;date.timezone =/date.timezone = ''Etc\/UTC''/' /etc/php/7.2/cli/php.ini
 RUN sed -i.bak 's/;error_log = php_errors.log/error_log = php_errors.log/' /etc/php/7.2/cli/php.ini
 ## Configure PHP FPM
 RUN sed -i.bak 's/max_execution_time = 30/max_execution_time = 120/' /etc/php/7.2/fpm/php.ini
 RUN sed -i.bak 's/memory_limit = -1/memory_limit = 1024M/' /etc/php/7.2/fpm/php.ini
+## TODO Set this via the .env file
 RUN sed -i.bak 's/;date.timezone =/date.timezone = ''Etc\/UTC''/' /etc/php/7.2/fpm/php.ini
 RUN sed -i.bak 's/;error_log = php_errors.log/error_log = php_errors.log/' /etc/php/7.2/fpm/php.ini
-## Test
-# RUN grep 'date.timezone' /etc/php/7.2/fpm/php.ini
 ## Folder perms
 RUN newgrp www-data
 ## Make sure the folder exists
@@ -84,23 +79,6 @@ RUN mkdir -p /var/www/NNTmux/storage/
 RUN chown www-data:www-data /var/www
 ## Set perms
 RUN chmod 755 /var/www
-# ARGS
-## Squirt in our specific changes
-# RUN sed -i.bak 's/DB_HOST=127.0.0.1/DB_HOST='${NEWZNAB_DB_HOST}'/' .env
-# RUN sed -i.bak 's/DB_USERNAME=/DB_USERNAME='${NEWZNAB_DB_USERNAME}'/' .env
-# RUN sed -i.bak 's/DB_PASSWORD=/DB_PASSWORD='${NEWZNAB_DB_PASSWORD}'/' .env
-# RUN sed -i.bak 's/NNTP_USERNAME=/NNTP_USERNAME='${NEWZNAB_NNTP_USERNAME}'/' .env
-# RUN sed -i.bak 's/NNTP_PASSWORD=/NNTP_PASSWORD='${NEWZNAB_NNTP_PASSWORD}'/' .env
-# RUN sed -i.bak 's/NNTP_SERVER=/NNTP_SERVER='${NEWZNAB_NTTP_SERVER}'/' .env
-# RUN sed -i.bak 's/NNTP_PORT=/NNTP_PORT='${NEWZNAB_NNTP_PORT}'/' .env
-# RUN sed -i.bak 's/NNTP_SSLENABLED=false/NNTP_SSLENABLED=true/' .env
-# # RUN sed -i.bak 's/NNTP_SOCKET_TIMEOUT=120/NNTP_SOCKET_TIMEOUT=120/' .env
-# RUN sed -i.bak 's/ADMIN_USER=/ADMIN_USER='${NEWZNAB_ADMIN_USER}'/' .env
-# RUN sed -i.bak 's/ADMIN_PASS=/ADMIN_PASS='${NEWZNAB_ADMIN_PASS}'/' .env
-# RUN sed -i.bak 's/ADMIN_EMAIL=/ADMIN_EMAIL='${NEWZNAB_ADMIN_EMAIL}'/' .env
-# RUN sed -i.bak 's/APP_ENV=/APP_ENV=production/' .env
-# RUN sed -i.bak 's/APP_DEBUG=/APP_DEBUG=false/' .env
-#RUN sed -i.bak 's/APP_TZ=/APP_TZ=Etc\/UTC/' .env
 
 ## Install Composter
 RUN cd /var/www
@@ -126,30 +104,21 @@ RUN chmod -R 777 /var/www/NNTmux/storage/
 RUN chmod -R 777 /var/www/NNTmux/resources/
 RUN chmod -R 777 /var/www/NNTmux/public/
 
-## Restart nginx and php7.2-fpm for the changes to take hold
-# RUN service nginx restart
-# RUN service php7.2-fpm restart
-
 ## Install and Configure Manticore
 RUN cp /var/www/NNTmux/misc/sphinxsearch/sphinx.conf /etc/sphinxsearch/sphinx.conf
 ## Edit the sphinx.conf
+## TODO Set the host via args
+# RUN sed -i.bak 's/listen                  = 9312/listen                  = ${MANTICORE_HOST}:${MANTICORE_PORT}/' /etc/sphinxsearch/sphinx.conf
+# RUN sed -i.bak 's/listen                  = 9306:mysql41/listen                  = ${MANTICORE_HOST}:9306:mysql41/' /etc/sphinxsearch/sphinx.conf
 RUN sed -i.bak 's/listen                  = 9312/listen                  = db:9312/' /etc/sphinxsearch/sphinx.conf
 RUN sed -i.bak 's/listen                  = 9306:mysql41/listen                  = db:9306:mysql41/' /etc/sphinxsearch/sphinx.conf
 RUN sed -i.bak 's/START=no/START=yes/' /etc/default/manticore
-
-# Set up sphinxsearch
-# WORKDIR /var/www/NNTmux/misc/sphinxsearch/
-# # RUN php create_se_tables.php <.env db host> <mysql port>
-# RUN php create_se_tables.php db 3306
-# RUN php populate_rt_indexes.php releases_rt
-# RUN php populate_rt_indexes.php predb_rt
 
 ## Build tmux
 WORKDIR /var/www/NNTmux
 RUN ./install_tmux.sh
 
 ## Install PHP Artisan
-# RUN /usr/bin/php artisan nntmux:install 
 WORKDIR /var/www/NNTmux
-ENTRYPOINT [ "./docker-entrypoint.sh" ] #, "init"]
+ENTRYPOINT [ "./docker-entrypoint.sh" ]
 CMD ["init"]

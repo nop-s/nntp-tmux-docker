@@ -1,15 +1,12 @@
 FROM mariadb/server:10.3
 
 ## Args to build DB
-ARG NEWZNAB_DB_HOST=db
-ARG NEWZNAB_DB_NAME=nntmux
-ARG NEWZNAB_DB_USERNAME=newsie
-ARG NEWZNAB_DB_PASSWORD=changeme
-## Remove bogu old files
-# RUN rm -rf /var/lib/mysql
+ARG DB_HOST
+ARG DB_DATABASE
+ARG DB_USERNAME
+ARG DB_PASSWORD
 
 ## Install manticore
-
 ADD https://github.com/manticoresoftware/manticoresearch/releases/download/2.7.5/manticore_2.7.5-181204-4a31c54-release-stemmer.bionic_amd64-bin.deb .
 RUN dpkg -i manticore_2.7.5-181204-4a31c54-release-stemmer.bionic_amd64-bin.deb
 
@@ -20,6 +17,6 @@ RUN mkdir -p /var/log/manticore/
 
 ## Add the init script that makes the responsible user
 ADD DockerInit.d/initdb.sh /docker-entrypoint-initdb.d/
-RUN bash /docker-entrypoint-initdb.d/initdb.sh ${NEWZNAB_DB_HOST} ${NEWZNAB_DB_NAME} ${NEWZNAB_DB_USERNAME} ${NEWZNAB_DB_PASSWORD} > /docker-entrypoint-initdb.d/schema.sql
+RUN bash /docker-entrypoint-initdb.d/initdb.sh ${DB_HOST} ${DB_DATABASE} ${DB_USERNAME} ${DB_PASSWORD} > /docker-entrypoint-initdb.d/schema.sql
 ENTRYPOINT [ "docker-entrypoint.sh" ]
 CMD ["mysqld"]

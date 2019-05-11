@@ -5,6 +5,8 @@ services:
     build: 
       context: .
       dockerfile: Dockerfiles/newznab-tmux
+      args:
+        - APP_TZ=${APP_TZ}
     image: newznab/newznab-tmux:latest
     depends_on: 
       - db
