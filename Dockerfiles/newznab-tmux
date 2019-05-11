@@ -1,0 +1,155 @@
+FROM ubuntu:latest
+RUN echo "Etc/UTC" > /etc/timezone
+# ARGs for flexibility
+ARG PHP_VERSION=${PHP_VERSION:-7.2}
+ARG NNTMUX_USER=${NNTMUX_USER:-root}
+ARG NEWZNAB_DB_HOST=db
+ARG NEWZNAB_DB_USERNAME=newsie
+ARG NEWZNAB_DB_PASSWORD=changeme
+ARG NEWZNAB_ADMIN_USER=nimda
+ARG NEWZNAB_ADMIN_PASS=adminchangeme
+ARG NEWZNAB_ADMIN_EMAIL=newznab@example.com
+## Meddle with the timezone info
+#RUN ln -fs /usr/share/zoneinfo/US/Pacific-New /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
+RUN apt-get update && apt-get upgrade -y
+RUN apt-get install -y tzdata
+## Get the PHP version that is supported
+RUN apt-get install -y git unzip nginx php7.2 php7.2-fpm php7.2-curl php7.2-bcmath php7.2-gd php7.2-intl php7.2-mysql php7.2-xml php7.2-mbstring
+## Get addition requirements for newznab
+RUN apt-get install -y unrar p7zip-full mediainfo libmediainfo0v5 lame ffmpeg # libav-tools
+## Install libzen0 and mediainfo
+RUN apt-get install -y libzen0v5 expect
+## Custom Tmux requirements
+RUN apt-get install -y automake build-essential pkg-config libevent-dev libncurses5-dev fonts-powerline powerline nmon htop time sudo
+## Create fpm pid dir
+RUN mkdir -p /run/php
+## Make the newznab folder
+RUN mkdir -p /var/wwww/NNTmux
+## Set the directory to work from
+WORKDIR /var/www/NNTmux
+## Import the current code
+## We should git clone this
+## TODO -- Set the version branch to v1.1 or you'll get an error
+## TODO -- Custom version of install_tmux without sudo
+RUN git clone https://github.com/NNTmux/newznab-tmux.git .
+
+## Set environmental configurations
+ADD .env .
+## Add the container entry point
+ADD docker-entrypoint.sh .
+## Script to do some automated tasks in artisan that require network/db access
+ADD nntp_init .
+## Add the nginx configuration
+ADD DockerInit.d/nginx-nntmux /etc/nginx/sites-available/NNTmux
+## Grab the manticore .deb
+ADD https://github.com/manticoresoftware/manticoresearch/releases/download/2.7.5/manticore_2.7.5-181204-4a31c54-release-stemmer.bionic_amd64-bin.deb .
+RUN dpkg -i manticore_2.7.5-181204-4a31c54-release-stemmer.bionic_amd64-bin.deb
+
+## Move the nginx config file
+# We should import this file in the docker-compose volume directive
+#RUN mv DockerInit.d/nginx-nntmux /etc/nginx/sites-available/NNTmux
+
+## Make logging directory
+RUN mkdir -p /var/log/nginx
+## Set perms for log dir
+RUN chmod 755 /var/log/nginx
+## Nginx maintainence
+RUN unlink /etc/nginx/sites-enabled/default
+## Make NNTmux the default site
+RUN ln -s /etc/nginx/sites-available/NNTmux /etc/nginx/sites-enabled/NNTmux
+## Change the fastcgi_pass
+#RUN sed -i.bak 's/listen = \/run\/php\/php7.2-fpm.sock/listen = 127.0.0.1:9000/' /etc/php/7.2/fpm/pool.d/www.conf
+## Configure the PHP CLI
+RUN sed -i.bak 's/max_execution_time = 30/max_execution_time = 120/' /etc/php/7.2/cli/php.ini
+RUN sed -i.bak 's/memory_limit = -1/memory_limit = 1024M/' /etc/php/7.2/cli/php.ini
+RUN sed -i.bak 's/;date.timezone =/date.timezone = ''Etc\/UTC''/' /etc/php/7.2/cli/php.ini
+RUN sed -i.bak 's/;error_log = php_errors.log/error_log = php_errors.log/' /etc/php/7.2/cli/php.ini
+## Configure PHP FPM
+RUN sed -i.bak 's/max_execution_time = 30/max_execution_time = 120/' /etc/php/7.2/fpm/php.ini
+RUN sed -i.bak 's/memory_limit = -1/memory_limit = 1024M/' /etc/php/7.2/fpm/php.ini
+RUN sed -i.bak 's/;date.timezone =/date.timezone = ''Etc\/UTC''/' /etc/php/7.2/fpm/php.ini
+RUN sed -i.bak 's/;error_log = php_errors.log/error_log = php_errors.log/' /etc/php/7.2/fpm/php.ini
+## Test
+# RUN grep 'date.timezone' /etc/php/7.2/fpm/php.ini
+## Folder perms
+RUN newgrp www-data
+## Make sure the folder exists
+RUN mkdir -p /var/www/NNTmux/bootstrap/cache
+RUN mkdir -p /var/www/NNTmux/storage/logs
+RUN mkdir -p /var/www/NNTmux/resources/tmp
+RUN mkdir -p /var/www/NNTmux/public/
+RUN mkdir -p /var/www/NNTmux/vendor/
+RUN mkdir -p /var/www/NNTmux/storage/
+## Set ownership
+RUN chown www-data:www-data /var/www
+## Set perms
+RUN chmod 755 /var/www
+# ARGS
+## Squirt in our specific changes
+# RUN sed -i.bak 's/DB_HOST=127.0.0.1/DB_HOST='${NEWZNAB_DB_HOST}'/' .env
+# RUN sed -i.bak 's/DB_USERNAME=/DB_USERNAME='${NEWZNAB_DB_USERNAME}'/' .env
+# RUN sed -i.bak 's/DB_PASSWORD=/DB_PASSWORD='${NEWZNAB_DB_PASSWORD}'/' .env
+# RUN sed -i.bak 's/NNTP_USERNAME=/NNTP_USERNAME='${NEWZNAB_NNTP_USERNAME}'/' .env
+# RUN sed -i.bak 's/NNTP_PASSWORD=/NNTP_PASSWORD='${NEWZNAB_NNTP_PASSWORD}'/' .env
+# RUN sed -i.bak 's/NNTP_SERVER=/NNTP_SERVER='${NEWZNAB_NTTP_SERVER}'/' .env
+# RUN sed -i.bak 's/NNTP_PORT=/NNTP_PORT='${NEWZNAB_NNTP_PORT}'/' .env
+# RUN sed -i.bak 's/NNTP_SSLENABLED=false/NNTP_SSLENABLED=true/' .env
+# # RUN sed -i.bak 's/NNTP_SOCKET_TIMEOUT=120/NNTP_SOCKET_TIMEOUT=120/' .env
+# RUN sed -i.bak 's/ADMIN_USER=/ADMIN_USER='${NEWZNAB_ADMIN_USER}'/' .env
+# RUN sed -i.bak 's/ADMIN_PASS=/ADMIN_PASS='${NEWZNAB_ADMIN_PASS}'/' .env
+# RUN sed -i.bak 's/ADMIN_EMAIL=/ADMIN_EMAIL='${NEWZNAB_ADMIN_EMAIL}'/' .env
+# RUN sed -i.bak 's/APP_ENV=/APP_ENV=production/' .env
+# RUN sed -i.bak 's/APP_DEBUG=/APP_DEBUG=false/' .env
+#RUN sed -i.bak 's/APP_TZ=/APP_TZ=Etc\/UTC/' .env
+
+## Install Composter
+RUN cd /var/www
+RUN chmod 777 .
+RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+RUN php -r 'if (hash_file("SHA384", "composer-setup.php") === preg_filter("#^.*?<pre>|</pre>.*$#s", "", file_get_contents("https://composer.github.io/pubkeys.html"))) { echo "Installer verified"; } else { echo "Installer corrupt"; unlink("composer-setup.php"); } echo PHP_EOL;'
+RUN php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+RUN php -r "unlink('composer-setup.php');"
+RUN composer -V
+
+## Composer section
+RUN composer global require hirak/prestissimo
+RUN composer install
+
+## Composer perms
+RUN chown -R ${NNTMUX_USER}:www-data /var/www/NNTmux/bootstrap/cache/
+RUN chown -R ${NNTMUX_USER}:www-data /var/www/NNTmux/bootstrap/cache/
+RUN chown -R ${NNTMUX_USER}:www-data /var/www/NNTmux/storage/logs/
+RUN chown -R ${NNTMUX_USER}:www-data /var/www/NNTmux/resources/tmp/
+RUN chown -R ${NNTMUX_USER}:www-data /var/www/NNTmux/public/
+RUN chmod -R 755 /var/www/NNTmux/vendor/
+RUN chmod -R 777 /var/www/NNTmux/storage/
+RUN chmod -R 777 /var/www/NNTmux/resources/
+RUN chmod -R 777 /var/www/NNTmux/public/
+
+## Restart nginx and php7.2-fpm for the changes to take hold
+# RUN service nginx restart
+# RUN service php7.2-fpm restart
+
+## Install and Configure Manticore
+RUN cp /var/www/NNTmux/misc/sphinxsearch/sphinx.conf /etc/sphinxsearch/sphinx.conf
+## Edit the sphinx.conf
+RUN sed -i.bak 's/listen                  = 9312/listen                  = db:9312/' /etc/sphinxsearch/sphinx.conf
+RUN sed -i.bak 's/listen                  = 9306:mysql41/listen                  = db:9306:mysql41/' /etc/sphinxsearch/sphinx.conf
+RUN sed -i.bak 's/START=no/START=yes/' /etc/default/manticore
+
+# Set up sphinxsearch
+# WORKDIR /var/www/NNTmux/misc/sphinxsearch/
+# # RUN php create_se_tables.php <.env db host> <mysql port>
+# RUN php create_se_tables.php db 3306
+# RUN php populate_rt_indexes.php releases_rt
+# RUN php populate_rt_indexes.php predb_rt
+
+## Build tmux
+WORKDIR /var/www/NNTmux
+RUN ./install_tmux.sh
+
+## Install PHP Artisan
+# RUN /usr/bin/php artisan nntmux:install 
+WORKDIR /var/www/NNTmux
+ENTRYPOINT [ "./docker-entrypoint.sh" ] #, "init"]
+CMD ["init"]

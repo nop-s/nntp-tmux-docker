@@ -1,0 +1,27 @@
+Welcome to the Machine!
+
+Intro
+
+Initial cut of a docker enabled version of the nntp-tmux indexer. The software system is split into two container, one is the database (MariaDB) and the nntp-tmux "application".
+
+
+Pre-flight checks:
+ 1. Fill in your .env! Copy the env.example to .env (The name matters!), key items: NNTP_SERVER, SESSION_DOMAIN, and APP_URL.
+ 2. Seriously change the default passwords. It all trickles through the system from the .env, if you use the default you're going to have a miserable time.
+
+Build:
+ make all
+
+Operations:
+ docker-compose up [-d] nntp-tmux
+
+Where to look when you're having problems:
+ Dockerfiles has all the docker "build" stuff. You're probably looking to replace a variable or make sure a service got turned on.
+ docker-entrypoint.sh is a light ripoff from other docker-entrypoint.sh software, the param "init" is used to bring things to life. Interacting with the "cluster" afterwards is usually done with `docker exec`.
+
+
+If you're being serious…
+ You'll want to give the database container a persistent store, otherwise you're gonna lose everything.
+ `make clean` will obliterate everything with docker prune, so heads up.
+
+Questions?

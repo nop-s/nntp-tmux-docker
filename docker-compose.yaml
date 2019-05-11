@@ -1,0 +1,46 @@
+version: "3.4"
+
+services:
+  newznab-tmux:
+    build: 
+      context: .
+      dockerfile: Dockerfiles/newznab-tmux
+    image: newznab/newznab-tmux:latest
+    depends_on: 
+      - db
+    networks:
+      - newznab_tmux_network
+    volumes:
+      - .env:/var/www/NNTmux/.env
+      - ~/DockerInit.d/nginx-nntmux:/etc/nginx/sites-available/NNTMux
+    ports:
+      - 8081:80
+    environment:
+      - NEWZNAB_DB_HOST=${NEWZNAB_DB_HOST}
+      - NEWZNAB_DB_NAME=${NEWZNAB_DB_NAME}
+      - NEWZNAB_DB_PORT=${NEWZNAB_DB_PORT}
+      - NEWZNAB_DB_USERNAME=${NEWZNAB_DB_USERNAME}
+      - NEWZNAB_DB_PASSWORD=${NEWZNAB_DB_PASSWORD}
+      - NEWZNAB_MANTICORE_HOST=${NEWZNAB_MANTICORE_HOST}
+      - NEWZNAB_MANTICORE_PORT=${NEWZNAB_MANTICORE_PORT}
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfiles/mariadb
+    image: newznab/mariadb
+    networks:
+      - newznab_tmux_network
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - NEWZNAB_DB_HOST=${NEWZNAB_DB_HOST}
+      - NEWZNAB_DB_NAME=${NEWZNAB_DB_NAME}
+      - NEWZNAB_DB_USERNAME=${NEWZNAB_DB_USERNAME}
+      - NEWZNAB_DB_PASSWORD=${NEWZNAB_DB_PASSWORD}
+    ports:
+      - 3306:3306
+    volumes:
+      - /var/lib/mysql
+networks:
+  newznab_tmux_network:
+    external:
+      name: newznab_tmux_network

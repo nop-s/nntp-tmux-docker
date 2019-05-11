@@ -1,0 +1,9 @@
+#!/usr/bin/expect
+
+set timeout 300
+
+spawn /usr/bin/php artisan nntmux:install
+#expect "Are you sure you want to install NNTmux? This will wipe your database!! (yes/no) [no]: "
+send "yes\r"
+wait -i $spawn_id
+interact
