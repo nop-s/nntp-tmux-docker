@@ -15,7 +15,7 @@ RUN mkdir -p /var/lib/manticore/data/
 RUN mkdir -p /var/log/manticore/
 
 ## Add the init script that makes the responsible user
-ADD scratch.d/schema.sql /docker-entrypoint-initdb.d/
+#ADD scratch.d/schema.sql /docker-entrypoint-initdb.d/
 
 ## Run the database
 ENTRYPOINT [ "docker-entrypoint.sh" ]

@@ -3,6 +3,7 @@ COMMIT     := $(shell git rev-parse --short HEAD)
 BUILD_DATE := $(shell date +%Y%m%d%H%M%S)
 BUILD_DIR  := $(shell pwd)
 SCRATCH_DIR := ${BUILD_DIR}/scratch.d
+DB_DIR     := ${SCRATCH_DIR}/db
 if fi\
 .PHONY: preq
 preq:
@@ -11,11 +12,11 @@ ifeq (,$(wildcard .env))
 	exit 1
 endif	
 ifeq (,$(wildcard ${SCRATCH_DIR}))
-	mkdir ${SCRATCH_DIR}
+	mkdir -p ${DB_DIR}
 endif
 .PHONY: schema
 schema: preq
-	(bash DockerInit.d/make_schema.sh .env ${SCRATCH_DIR})
+	(bash DockerInit.d/make_schema.sh .env ${DB_DIR})
 
 .PHONY: db
 db: preq schema

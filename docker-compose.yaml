@@ -46,6 +46,7 @@ services:
       - 3306:3306
     volumes:
       - /var/lib/mysql
+      - ./scratch.d/db/:/docker-entrypoint-initdb.d/ # This mounts the directory that contains the schema.sql
 networks:
   newznab_tmux_network:
     external:
