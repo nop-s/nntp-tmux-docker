@@ -33,7 +33,7 @@ ADD .env .
 ## Add the container entry point
 ADD docker-entrypoint.sh .
 ## Script to do some automated tasks in artisan that require network/db access
-ADD nntp_init .
+ADD DockerInit.d/nntp_init .
 ## Add the nginx configuration
 ADD DockerInit.d/nginx-nntmux /etc/nginx/sites-available/NNTmux
 ## Grab the manticore .deb
