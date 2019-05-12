@@ -15,6 +15,11 @@ Build:
 Operations:
  docker-compose up [-d] nntp-tmux
 
+Gotchas:
+ 1. There is a race condition between bring up of the db and the application. Do them separately.
+ 2. Change the default password.
+ 3. IF you some how get into a place in application container doesn't come up, you might be getting roughed up by php artisan nntp-tmux:install.
+
 Where to look when you're having problems:
  Dockerfiles has all the docker "build" stuff. You're probably looking to replace a variable or make sure a service got turned on.
  docker-entrypoint.sh is a light ripoff from other docker-entrypoint.sh software, the param "init" is used to bring things to life. Interacting with the "cluster" afterwards is usually done with `docker exec`.
