@@ -1,13 +1,13 @@
 version: "3.4"
 
 services:
-  newznab-tmux:
+  app:
     build: 
       context: .
       dockerfile: Dockerfiles/newznab-tmux
       args:
         - APP_TZ=${APP_TZ}
-    image: newznab/newznab-tmux:latest
+    image: newznab-tmux-docker/app:latest
     depends_on: 
       - db
     networks:
@@ -33,7 +33,7 @@ services:
         - DB_DATABASE=${DB_DATABASE}
         - DB_USERNAME=${DB_USERNAME}
         - DB_PASSWORD=${DB_PASSWORD}
-    image: newznab/mariadb
+    image: newznab-tmux-docker/mariadb
     networks:
       - newznab_tmux_network
     environment:

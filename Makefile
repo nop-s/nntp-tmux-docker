@@ -21,19 +21,19 @@ schema: preq
 .PHONY: db
 db: preq schema
 	$(DOCKERBUILD) db
-	(docker tag newznab/mariadb newznabtmux/mariadb:${BUILD_DATE})
+	(docker tag newznab-tmux-docker/mariadb newznab-tmux-docker/mariadb:${BUILD_DATE})
 
-.PHONY: newznab-tmux
-newznab-tmux: preq
-	$(DOCKERBUILD) newznab-tmux
-	(docker tag newznab/newznab-tmux newznabtmux/newznab-tmux:${BUILD_DATE})
+.PHONY: app
+app: preq
+	$(DOCKERBUILD) app
+	(docker tag newznab-tmux-docker/app newznab-tmux-docker/app:${BUILD_DATE})
 
 .PHONY: network
 network: preq
 	docker network create newznab_tmux_network
 
 .PHONY: all
-all: network db schema newznab-tmux
+all: network db schema app
 
 .PHONY: clean
 clean:
