@@ -18,7 +18,8 @@ Operations:
 Where to look when you're having problems:
  Dockerfiles has all the docker "build" stuff. You're probably looking to replace a variable or make sure a service got turned on.
  docker-entrypoint.sh is a light ripoff from other docker-entrypoint.sh software, the param "init" is used to bring things to life. Interacting with the "cluster" afterwards is usually done with `docker exec`.
-
+ Remember to turn on the "core" with: 
+  php artisan tmux-ui:start
 
 If you're being serious…
  You'll want to give the database container a persistent store, otherwise you're gonna lose everything.
