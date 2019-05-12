@@ -18,26 +18,30 @@ services:
     ports:
       - 8081:80
     environment:
-      - NEWZNAB_DB_HOST=${NEWZNAB_DB_HOST}
-      - NEWZNAB_DB_NAME=${NEWZNAB_DB_NAME}
-      - NEWZNAB_DB_PORT=${NEWZNAB_DB_PORT}
-      - NEWZNAB_DB_USERNAME=${NEWZNAB_DB_USERNAME}
-      - NEWZNAB_DB_PASSWORD=${NEWZNAB_DB_PASSWORD}
-      - NEWZNAB_MANTICORE_HOST=${NEWZNAB_MANTICORE_HOST}
-      - NEWZNAB_MANTICORE_PORT=${NEWZNAB_MANTICORE_PORT}
+      - DB_HOST=${DB_HOST}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_PORT=${DB_PORT}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - MANTICORE_HOST=${MANTICORE_HOST}
+      - MANTICORE_PORT=${MANTICORE_PORT}
   db:
     build:
       context: .
       dockerfile: Dockerfiles/mariadb
+      args:
+        - DB_DATABASE=${DB_DATABASE}
+        - DB_USERNAME=${DB_USERNAME}
+        - DB_PASSWORD=${DB_PASSWORD}
     image: newznab/mariadb
     networks:
       - newznab_tmux_network
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - NEWZNAB_DB_HOST=${NEWZNAB_DB_HOST}
-      - NEWZNAB_DB_NAME=${NEWZNAB_DB_NAME}
-      - NEWZNAB_DB_USERNAME=${NEWZNAB_DB_USERNAME}
-      - NEWZNAB_DB_PASSWORD=${NEWZNAB_DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
     ports:
       - 3306:3306
     volumes:
