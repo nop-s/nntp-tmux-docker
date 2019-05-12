@@ -32,7 +32,7 @@ network: preq
 	docker network create newznab_tmux_network
 
 .PHONY: all
-all: network db newznab-tmux
+all: network db schema newznab-tmux
 
 .PHONY: clean
 clean:
